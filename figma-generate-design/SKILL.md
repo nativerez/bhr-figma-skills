@@ -196,12 +196,12 @@ wrapper.y = 0;
 
 return { success: true, wrapperId: wrapper.id };
 ```
-- **CRITICAL:**
-Inside this new wrapper create a Layout frame called 'Layout Container' with Autolayout set to Horizontal, and always start with the Side Nav component as part of the initial layout (https://www.figma.com/design/3dNASwqNXrYbGQyHsf1Sgg/Components--Lumen--Bright-UI-?node-id=3335-13371&t=APCPvfB1uOfd6NfH-4) with props Sub menu: Off. The Side Nav sits flush against the left edge of the Layout Container.
 
-**BrightHR projects:** For the complete new file layout structure (Layout Container, Side Nav, Main frame, Global Header), see the "New File Layout Structure" section in [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md)
+**BrightHR projects:** For the complete new file layout structure (Layout Container, Side Nav, Main frame, Global Header), see the "New File Layout Structure" section in [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md).
 
-**This is the most important step.** Build one section at a time, each in its own `use_figma` call. At the start of each script, fetch the main frame by ID and append new content directly to it.
+### Step 4: Build Each Section Inside the Wrapper
+
+**This is the most important step.** Build one section at a time, each in its own `use_figma` call. At the start of each script, fetch the wrapper frame by ID and append new content directly to it.
 
 ```js
 const createdNodeIds = [];
@@ -339,16 +339,6 @@ Follow the error recovery process from [figma-use](../figma-use/SKILL.md#6-error
 Because this skill works incrementally (one section per call), errors are naturally scoped to a single section. Previous sections from successful calls remain intact.
 
 ## Best Practices
-
-### BrightHR-Specific Requirements
-
-- **Component Library Filter:** ONLY use components from "Components: Lumen (Bright-UI)" (fileKey: `3dNASwqNXrYbGQyHsf1Sgg`). Reject all search results from BEX, dotcom, Peninsula, Mobile Apps, or other libraries.
-- **Icons:** ONLY use icons from "Components: Icons v2.0" (fileKey: `2lYWKHwYwf4iAYJxILH2Wr`).
-- **Font:** ONLY use **Albert Sans** font family. Never use Inter, Roboto, or any other font. Always load the required font weights before text operations.
-- **Color Variables:** ONLY use color variables from "BrightHR Colours & Styles" (fileKey: `Tutg1Xnl9e07uED4DZjyUB`). Never hardcode hex colors.
-- **Typography Variables:** ONLY use typography variables from "Web Typography" (fileKey: `OudUc4pq10fGO5oHkA674i`).
-
-### General Best Practices
 
 - **Always search before building.** The design system likely has the component, variable, or style you need. Manual construction and hardcoded values should be the exception, not the rule.
 - **Search broadly.** Try synonyms and partial terms. A "NavigationPill" might be found under "pill", "nav", "tab", or "chip". For variables, search "color", "spacing", "radius", etc.
