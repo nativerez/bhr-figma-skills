@@ -188,8 +188,8 @@ function convertHorizontalToVertical(node, isTablet = false) {
       node.layoutSizingVertical = "HUG";
     }
     
-    // Change center-aligned text to left-aligned for mobile
-    if (node.textAlignHorizontal === "CENTER") {
+    // Change center-aligned and right-aligned text to left-aligned for mobile
+    if (node.textAlignHorizontal === "CENTER" || node.textAlignHorizontal === "RIGHT") {
       node.textAlignHorizontal = "LEFT";
     }
     
@@ -226,7 +226,7 @@ convertHorizontalToVertical(mobileFrame, false);
 5. **Sets proper sizing** (HUG height always, FILL width for nested frames)
 6. **Only sets sizing properties when parent has auto-layout** (prevents errors)
 7. **Preserves component instance layouts** (only makes them fill width)
-8. **Fixes text frames** (FILL width, HUG height, changes CENTER → LEFT alignment)
+8. **Fixes text frames** (FILL width, HUG height, changes CENTER/RIGHT → LEFT alignment)
 
 **Common patterns this handles:**
 - Card grids → vertical stack of full-width cards
@@ -418,7 +418,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Consistent spacing between stacked elements** (16px for previously auto/zero spacing, preserved for intentional gaps ≥ 8px)
 - **Child frames in vertical layouts use FILL width and HUG height** (never FIXED height)
 - **Text frames fill width and hug height** (no 1px wide text, `layoutSizingHorizontal = "FILL"`, `layoutSizingVertical = "HUG"`)
-- **Center-aligned text changed to left-aligned** for mobile (`textAlignHorizontal = "LEFT"`)
+- **Center-aligned and right-aligned text changed to left-aligned** for mobile (`textAlignHorizontal = "LEFT"`)
 - **Component instances preserve their internal layout** (only their container sizing changes)
 - **No errors about layoutSizing on non-auto-layout parents** (check parent has auto-layout before setting sizing)
 - Buttons and select menus are full width (using `layoutSizingHorizontal = "FILL"`)
@@ -442,7 +442,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Always use HUG height, never FIXED** — heights should grow with content, not be constrained
 - **Preserve component instance layouts** — only change their container sizing (FILL width, HUG height), not their internal layoutMode
 - **Fix text frames to prevent 1px width** — text nodes should use `layoutSizingHorizontal = "FILL"` and `layoutSizingVertical = "HUG"` when in auto-layout parents
-- **Change center-aligned text to left-aligned** — convert `textAlignHorizontal = "CENTER"` to `"LEFT"` for mobile readability
+- **Change center-aligned and right-aligned text to left-aligned** — convert `textAlignHorizontal = "CENTER"` or `"RIGHT"` to `"LEFT"` for mobile readability
 - **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers, text frames, and all child frames in vertical layouts
 - **Swap component variants for responsive components** — Global Header, navigation, etc. have Size props
 - **Validate with screenshots** — visual confirmation catches issues text logs miss
