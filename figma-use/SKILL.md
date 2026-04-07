@@ -16,6 +16,8 @@ Before anything, load [plugin-api-standalone.index.md](references/plugin-api-sta
 
 IMPORTANT: Whenever you work with design systems, start with [working-with-design-systems/wwds.md](references/working-with-design-systems/wwds.md) to understand the key concepts, processes, and guidelines for working with design systems in Figma. Then load the more specific references for components, variables, text styles, and effect styles as needed.
 
+**BrightHR projects:** When working with BrightHR Figma files, also load [brighthr-conventions.md](references/working-with-design-systems/brighthr-conventions.md) — it documents mandatory metadata requirements (component descriptions, variable scopes, code syntax annotations) that enable AI-assisted workflows.
+
 ## 1. Critical Rules
 
 1.  **Use `return` to send data back.** The return value is JSON-serialized automatically (objects, arrays, strings, numbers). Do NOT call `figma.closePlugin()` or wrap code in an async IIFE — this is handled for you.

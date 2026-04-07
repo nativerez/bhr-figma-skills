@@ -28,8 +28,6 @@ Use this skill to create or update full-page screens in Figma by **reusing the p
   - Or context about which file to target (the agent can discover pages)
 - Source code or description of the screen to build/update
 
-**BrightHR projects:** When working on BrightHR screens, load [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md) for mandatory design system sources, component filtering rules, default variant usage, and required components for new files.
-
 ## Parallel Workflow with generate_figma_design (Web Apps Only)
 
 When building a screen from a **web app** that can be rendered in a browser, the best results come from running both approaches in parallel:
@@ -43,10 +41,6 @@ When building a screen from a **web app** that can be rendered in a browser, the
 This combines the best of both: `generate_figma_design` gives pixel-perfect layout accuracy, while use_figma gives proper design system component instances that stay linked and updatable.
 
 **This workflow only applies to web apps** where `generate_figma_design` can capture the running page. For non-web apps (iOS, Android, etc.) or when updating existing screens, use the standard workflow below.
-
-## Creating Responsive Versions from Desktop Frames
-
-When the user requests **tablet and mobile versions** of an existing desktop frame, load [responsive-workflow.md](references/responsive-workflow.md) for the complete workflow, including viewport sizes, padding rules, component variant swapping, and the 7-step adaptation process.
 
 ## Required Workflow
 
@@ -110,9 +104,9 @@ Component Map:
 >
 > **Never conclude "no variables exist" based solely on `getLocalVariableCollectionsAsync()` returning empty.** Always also run `search_design_system` with `includeVariables: true` to check for library variables before deciding to create your own.
 
-**Query strategy:** `search_design_system` matches against **variable names** (e.g., "Neutral/Neutral-900", "core/gray/100", "space/400"), not categories. Run multiple short, simple queries in parallel rather than one compound query:
+**Query strategy:** `search_design_system` matches against **variable names** (e.g., "Gray/gray-9", "core/gray/100", "space/400"), not categories. Run multiple short, simple queries in parallel rather than one compound query:
 
-- **Primitive colors:** "neutral", "danger", "accent", "warning", "success", "white", "brand"
+- **Primitive colors:** "gray", "red", "blue", "green", "white", "brand"
 - **Semantic colors:** "background", "foreground", "border", "surface", "text"
 - **Spacing/sizing:** "space", "radius", "gap", "padding"
 
@@ -188,7 +182,7 @@ wrapper.name = "Homepage";
 wrapper.layoutMode = "VERTICAL";
 wrapper.primaryAxisAlignItems = "CENTER";
 wrapper.counterAxisAlignItems = "CENTER";
-wrapper.resize(1440, 768);
+wrapper.resize(1440, 100);
 wrapper.layoutSizingHorizontal = "FIXED";
 wrapper.layoutSizingVertical = "HUG";
 wrapper.x = maxX + 200;
@@ -196,16 +190,14 @@ wrapper.y = 0;
 
 return { success: true, wrapperId: wrapper.id };
 ```
-- **CRITICAL:**
-Inside this new wrapper create a Layout frame called 'Layout Container' with Autolayout set to Horizontal, and always start with the Side Nav component as part of the initial layout (https://www.figma.com/design/3dNASwqNXrYbGQyHsf1Sgg/Components--Lumen--Bright-UI-?node-id=3335-13371&t=APCPvfB1uOfd6NfH-4) with props Sub menu: Off. The Side Nav sits flush against the left edge of the Layout Container.
 
-**BrightHR projects:** For the complete new file layout structure (Layout Container, Side Nav, Main frame, Global Header), see the "New File Layout Structure" section in [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md)
+### Step 4: Build Each Section Inside the Wrapper
 
-**This is the most important step.** Build one section at a time, each in its own `use_figma` call. At the start of each script, fetch the main frame by ID and append new content directly to it.
+**This is the most important step.** Build one section at a time, each in its own `use_figma` call. At the start of each script, fetch the wrapper by ID and append new content directly to it.
 
 ```js
 const createdNodeIds = [];
-const main = await figma.getNodeByIdAsync("MAIN_ID_FROM_STEP_3");
+const wrapper = await figma.getNodeByIdAsync("WRAPPER_ID_FROM_STEP_3");
 
 // Import design system components by key
 const buttonSet = await figma.importComponentSetByKeyAsync("BUTTON_SET_KEY");
@@ -220,13 +212,13 @@ const spacingVar = await figma.variables.importVariableByKeyAsync("SPACING_VAR_K
 // Build section frame with variable bindings (not hardcoded values)
 const section = figma.createFrame();
 section.name = "Header";
-section.layoutMode = "HORIZONTAL";Wrapper
-
-**This is the most important step.** Build one section at a time, each in its own `use_figma` call. At the start of each script, fetch the wrapper
+section.layoutMode = "HORIZONTAL";
+section.setBoundVariable("paddingLeft", spacingVar);
+section.setBoundVariable("paddingRight", spacingVar);
 const bgPaint = figma.variables.setBoundVariableForPaint(
   { type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', bgColorVar
 );
-sectiowrapper = await figma.getNodeByIdAsync("WRAPPER
+section.fills = [bgPaint];
 
 // Import and apply text/effect styles
 const shadowStyle = await figma.importStyleByKeyAsync("SHADOW_STYLE_KEY");
@@ -237,8 +229,8 @@ const btnInstance = primaryButton.createInstance();
 section.appendChild(btnInstance);
 createdNodeIds.push(btnInstance.id);
 
-// Append section to main
-main.appendChild(section);
+// Append section to wrapper
+wrapper.appendChild(section);
 section.layoutSizingHorizontal = "FILL"; // AFTER appending
 
 createdNodeIds.push(section.id);
@@ -258,8 +250,8 @@ const nestedHeading = cardInstance.findOne(n => n.type === "INSTANCE" && n.name 
 if (nestedHeading) {
   nestedHeading.setProperties({ "Text#2104:5": "Actual heading from source code" });
 }
-```wrapper
-wrapper
+```
+
 Only fall back to direct `node.characters` for text that is NOT managed by any component property.
 
 #### Read source code defaults carefully
@@ -339,16 +331,6 @@ Follow the error recovery process from [figma-use](../figma-use/SKILL.md#6-error
 Because this skill works incrementally (one section per call), errors are naturally scoped to a single section. Previous sections from successful calls remain intact.
 
 ## Best Practices
-
-### BrightHR-Specific Requirements
-
-- **Component Library Filter:** ONLY use components from "Components: Lumen (Bright-UI)" (fileKey: `3dNASwqNXrYbGQyHsf1Sgg`). Reject all search results from BEX, dotcom, Peninsula, Mobile Apps, or other libraries.
-- **Icons:** ONLY use icons from "Components: Icons v2.0" (fileKey: `2lYWKHwYwf4iAYJxILH2Wr`).
-- **Font:** ONLY use **Albert Sans** font family. Never use Inter, Roboto, or any other font. Always load the required font weights before text operations.
-- **Color Variables:** ONLY use color variables from "BrightHR Colours & Styles" (fileKey: `Tutg1Xnl9e07uED4DZjyUB`). Never hardcode hex colors.
-- **Typography Variables:** ONLY use typography variables from "Web Typography" (fileKey: `OudUc4pq10fGO5oHkA674i`).
-
-### General Best Practices
 
 - **Always search before building.** The design system likely has the component, variable, or style you need. Manual construction and hardcoded values should be the exception, not the rule.
 - **Search broadly.** Try synonyms and partial terms. A "NavigationPill" might be found under "pill", "nav", "tab", or "chip". For variables, search "color", "spacing", "radius", etc.
