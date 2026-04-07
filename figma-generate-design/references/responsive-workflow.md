@@ -76,6 +76,50 @@ if (mobileFrame.layoutMode === "NONE") {
   mobileFrame.counterAxisSizingMode = "FIXED";
 }
 
+// Helper function to preserve icon sizes (prevent stretching/resizing)
+function preserveIconSizes(node) {
+  if (!node) return;
+  
+  // Identify icon nodes by:
+  // - Instance from icon library (Icons v2.0)
+  // - Node name contains "icon" (case insensitive)
+  // - SVG or vector graphics
+  const isIcon = 
+    (node.type === "INSTANCE" && node.name.toLowerCase().includes("icon")) ||
+    (node.type === "COMPONENT" && node.name.toLowerCase().includes("icon")) ||
+    node.name.toLowerCase().includes("icon") ||
+    node.type === "VECTOR" ||
+    node.type === "BOOLEAN_OPERATION";
+  
+  if (isIcon) {
+    // Store original dimensions
+    const originalWidth = node.width;
+    const originalHeight = node.height;
+    
+    // If in auto-layout parent, set to fixed size (prevents stretching)
+    if (node.parent && node.parent.layoutMode !== "NONE") {
+      node.layoutSizingHorizontal = "FIXED";
+      node.layoutSizingVertical = "FIXED";
+    }
+    
+    // Ensure dimensions haven't changed
+    if (node.width !== originalWidth || node.height !== originalHeight) {
+      node.resize(originalWidth, originalHeight);
+    }
+  }
+  
+  // Recursively process children (but not component instances)
+  if ("children" in node && node.type !== "INSTANCE") {
+    for (const child of node.children) {
+      preserveIconSizes(child);
+    }
+  }
+}
+
+// Preserve icon sizes in both responsive frames
+preserveIconSizes(tabletFrame);
+preserveIconSizes(mobileFrame);
+
 return { 
   success: true, 
   tabletFrameId: tabletFrame.id,
@@ -196,6 +240,33 @@ function convertHorizontalToVertical(node, isTablet = false) {
     return; // Don't recurse into text nodes
   }
   
+  // Handle icons - preserve their size (prevent stretching)
+  const isIcon = 
+    (node.type === "INSTANCE" && node.name.toLowerCase().includes("icon")) ||
+    (node.type === "COMPONENT" && node.name.toLowerCase().includes("icon")) ||
+    node.name.toLowerCase().includes("icon") ||
+    node.type === "VECTOR" ||
+    node.type === "BOOLEAN_OPERATION";
+  
+  if (isIcon) {
+    // Store original dimensions
+    const originalWidth = node.width;
+    const originalHeight = node.height;
+    
+    // Set to fixed size in auto-layout (prevents stretching)
+    if (node.parent && node.parent.layoutMode !== "NONE") {
+      node.layoutSizingHorizontal = "FIXED";
+      node.layoutSizingVertical = "FIXED";
+    }
+    
+    // Ensure dimensions preserved
+    if (node.width !== originalWidth || node.height !== originalHeight) {
+      node.resize(originalWidth, originalHeight);
+    }
+    
+    return; // Don't recurse into icons
+  }
+  
   // Recursively process all children
   if ("children" in node) {
     for (const child of node.children) {
@@ -227,6 +298,7 @@ convertHorizontalToVertical(mobileFrame, false);
 6. **Only sets sizing properties when parent has auto-layout** (prevents errors)
 7. **Preserves component instance layouts** (only makes them fill width)
 8. **Fixes text frames** (FILL width, HUG height, changes CENTER/RIGHT → LEFT alignment)
+9. **Preserves icon sizes** (FIXED sizing to prevent stretching, maintains original dimensions)
 
 **Common patterns this handles:**
 - Card grids → vertical stack of full-width cards
@@ -235,7 +307,7 @@ convertHorizontalToVertical(mobileFrame, false);
 - Navigation pills in a row → vertical list of nav items
 - Image + text layouts (horizontal) → image above text (vertical)
 
-**Important:** Component instances (like buttons, inputs, cards) preserve their internal auto-layout settings. Only their container sizing changes (FILL width, HUG height).
+**Important:** Component instances (like buttons, inputs, cards) preserve their internal auto-layout settings. Only their container sizing changes (FILL width, HUG height). Icons maintain their original dimensions and are never stretched or resized.
 
 ### 5. Make Buttons and Select Menus Full Width
 
@@ -531,6 +603,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Vertical frames have top-left alignment** (`primaryAxisAlignItems = "MIN"`, `counterAxisAlignItems = "MIN"`)
 - **Consistent spacing between stacked elements** (16px for previously auto/zero spacing, preserved for intentional gaps ≥ 8px)
 - **Mobile: Padding consolidated to innermost content frames** (no redundant padding on ancestor frames, only 20px on frames with actual content)
+- **Icons maintain original size** (not stretched or resized, `layoutSizingHorizontal = "FIXED"`, `layoutSizingVertical = "FIXED"`)
 - **Child frames in vertical layouts use FILL width and HUG height** (never FIXED height)
 - **Text frames fill width and hug height** (no 1px wide text, `layoutSizingHorizontal = "FILL"`, `layoutSizingVertical = "HUG"`)
 - **Center-aligned and right-aligned text changed to left-aligned** for mobile (`textAlignHorizontal = "LEFT"`)
@@ -550,6 +623,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Always switch to the source page first** — Use `await figma.setCurrentPageAsync()` to ensure responsive frames are created on the same page as the original desktop frame
 - **Always clone first, then resize** — never try to resize in place and then clone
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
+- **Preserve icon sizes** — icons should maintain original dimensions with FIXED sizing; never stretch or resize them
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
 - **Mobile-only: Consolidate padding to innermost frames** — remove redundant padding from ancestor frames; keep 20px only on frames that directly contain text/buttons/inputs
 - **Convert horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform frames (not instances) at every nesting level, always check parent has auto-layout before setting sizing
