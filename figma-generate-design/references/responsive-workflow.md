@@ -27,7 +27,9 @@ Trigger this workflow when the user:
 
 ### 1. Clone and Resize the Desktop Frame
 
-Start by cloning the desktop frame and positioning the responsive versions adjacent to avoid overlap. **Enable auto-layout on the cloned frames** to ensure content flows properly:
+Start by cloning the desktop frame and positioning the responsive versions adjacent to avoid overlap. **Enable auto-layout on the cloned frames** to ensure content flows properly.
+
+**CRITICAL:** Ensure you're on the same page as the original desktop frame before cloning. Frames must be created on the same page to maintain context and organization.
 
 ```js
 // Load required fonts
@@ -41,6 +43,10 @@ const originalFrame = await figma.getNodeByIdAsync("DESKTOP_FRAME_ID");
 if (!originalFrame || originalFrame.type !== "FRAME") {
   throw new Error("Original frame not found");
 }
+
+// CRITICAL: Switch to the page containing the original frame
+const sourcePage = originalFrame.parent.type === "PAGE" ? originalFrame.parent : figma.currentPage;
+await figma.setCurrentPageAsync(sourcePage);
 
 // Clone for tablet
 const tabletFrame = originalFrame.clone();
@@ -293,6 +299,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 ```
 
 **Check for common issues:**
+- **Frames created on same page as desktop original** (not on a different page)
 - Buttons and select menus are full width (using `layoutSizingHorizontal = "FILL"`)
 - Content containers have proper padding (20px left/right on inner containers, not the main frame)
 - Side-by-side content is stacked vertically
@@ -304,6 +311,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 
 ## Best Practices
 
+- **Always switch to the source page first** — Use `await figma.setCurrentPageAsync()` to ensure responsive frames are created on the same page as the original desktop frame
 - **Always clone first, then resize** — never try to resize in place and then clone
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
