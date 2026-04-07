@@ -126,13 +126,16 @@ if (sideNav) {
 
 ### 4. Convert All Horizontal Auto-Layout Frames to Vertical (CRITICAL)
 
-**This is a universal transformation rule for responsive design.** On tablet and mobile, horizontal layouts that work on desktop become problematic due to limited width. ALL auto-layout frames set to HORIZONTAL must be converted to VERTICAL, at every nesting level.
+**This is a universal transformation rule for responsive design.** On tablet and mobile, horizontal layouts that work on desktop become problematic due to limited width. ALL auto-layout frames (NOT component instances) set to HORIZONTAL must be converted to VERTICAL, at every nesting level.
 
 **This applies to:**
-- All parent auto-layout frames
-- All nested auto-layout frames (recursively)
-- Content containers, card grids, button groups, form rows, navigation bars
-- Any frame with `layoutMode === "HORIZONTAL"`
+- Parent and nested auto-layout **frames** (recursively)
+- Content containers, card grids, button groups, form rows
+- Any regular frame with `layoutMode === "HORIZONTAL"`
+
+**This does NOT apply to:**
+- Component instances (preserve their internal layout)
+- Regular frames without auto-layout
 
 **Why this matters:**
 - Horizontal layouts on desktop (e.g., 3 cards in a row) don't fit on mobile
@@ -140,24 +143,33 @@ if (sideNav) {
 - Child elements need to fill available width instead of sitting side-by-side
 
 ```js
-// Recursive function to convert all horizontal auto-layout frames to vertical
+// Recursive function to convert horizontal auto-layout frames to vertical
 function convertHorizontalToVertical(node, isTablet = false) {
-  const targetWidth = isTablet ? 768 : 375;
+  // Skip component instances - preserve their internal layout
+  if (node.type === "INSTANCE") {
+    // Only ensure instances fill width if parent has auto-layout
+    if (node.parent && node.parent.layoutMode !== "NONE") {
+      node.layoutSizingHorizontal = "FILL";
+      node.layoutSizingVertical = "HUG"; // Never use FIXED height
+    }
+    return; // Don't recurse into instances
+  }
   
-  // If this node is a horizontal auto-layout frame, convert it to vertical
+  // Convert horizontal auto-layout frames to vertical
   if (node.type === "FRAME" && node.layoutMode === "HORIZONTAL") {
     node.layoutMode = "VERTICAL";
-    node.primaryAxisSizingMode = "AUTO"; // Height grows with content
-    node.counterAxisSizingMode = "FIXED"; // Width is fixed or fill
+    node.primaryAxisSizingMode = "AUTO"; // Height hugs content (HUG)
+    node.counterAxisSizingMode = "FIXED"; // Width stays fixed
     
     // Ensure proper spacing between stacked items
     if (node.itemSpacing === 0 || node.itemSpacing < 8) {
       node.itemSpacing = 16; // Minimum vertical spacing
     }
     
-    // Make container fill available width if it's not top-level
-    if (node.parent && node.parent.type !== "PAGE") {
+    // Make container fill width if parent has auto-layout
+    if (node.parent && node.parent.layoutMode !== "NONE" && node.parent.type !== "PAGE") {
       node.layoutSizingHorizontal = "FILL";
+      node.layoutSizingVertical = "HUG"; // Never use FIXED height
     }
   }
   
@@ -166,9 +178,11 @@ function convertHorizontalToVertical(node, isTablet = false) {
     for (const child of node.children) {
       convertHorizontalToVertical(child, isTablet);
       
-      // After converting parent to vertical, make children fill width
+      // After converting parent to vertical, make child frames fill width
+      // CRITICAL: Only set sizing if parent has auto-layout
       if (node.layoutMode === "VERTICAL" && child.type === "FRAME") {
         child.layoutSizingHorizontal = "FILL";
+        child.layoutSizingVertical = "HUG"; // Never use FIXED height
       }
     }
   }
@@ -182,18 +196,21 @@ convertHorizontalToVertical(mobileFrame, false);
 ```
 
 **What this does:**
-1. **Finds all horizontal auto-layout frames** at every nesting level
+1. **Finds all horizontal auto-layout frames** (skips component instances)
 2. **Converts them to vertical** (`layoutMode = "VERTICAL"`)
-3. **Sets proper sizing** (HUG height, FILL width for nested frames)
-4. **Adjusts spacing** (ensures minimum 16px gap between stacked items)
-5. **Makes children fill width** (so content uses full available space instead of shrinking)
+3. **Sets proper sizing** (HUG height always, FILL width for nested frames)
+4. **Only sets sizing properties when parent has auto-layout** (prevents errors)
+5. **Adjusts spacing** (ensures minimum 16px gap between stacked items)
+6. **Preserves component instance layouts** (only makes them fill width)
 
 **Common patterns this handles:**
 - Card grids → vertical stack of full-width cards
-- Button groupsside-by-side (desktop) → stacked buttons (mobile)
+- Button groups side-by-side (desktop) → stacked buttons (mobile)
 - Form rows with multiple inputs → vertical stack of full-width inputs
 - Navigation pills in a row → vertical list of nav items
 - Image + text layouts (horizontal) → image above text (vertical)
+
+**Important:** Component instances (like buttons, inputs, cards) preserve their internal auto-layout settings. Only their container sizing changes (FILL width, HUG height).
 
 ### 5. Make Buttons and Select Menus Full Width
 
@@ -371,8 +388,10 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 
 **Check for common issues:**
 - **Frames created on same page as desktop original** (not on a different page)
-- **All horizontal auto-layout frames converted to vertical** (check at all nesting levels)
-- **Child frames in vertical layouts use FILL width** (not FIXED or HUG)
+- **All horizontal auto-layout frames converted to vertical** (check at all nesting levels, but skip component instances)
+- **Child frames in vertical layouts use FILL width and HUG height** (never FIXED height)
+- **Component instances preserve their internal layout** (only their container sizing changes)
+- **No errors about layoutSizing on non-auto-layout parents** (check parent has auto-layout before setting sizing)
 - Buttons and select menus are full width (using `layoutSizingHorizontal = "FILL"`)
 - Content containers have proper padding (20px left/right on inner containers, not the main frame)
 - Side-by-side content is stacked vertically
@@ -388,7 +407,9 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Always clone first, then resize** — never try to resize in place and then clone
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
-- **Convert ALL horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform every horizontal frame at every nesting level, then set child frames to FILL width
+- **Convert horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform frames (not instances) at every nesting level, always check parent has auto-layout before setting sizing
+- **Always use HUG height, never FIXED** — heights should grow with content, not be constrained
+- **Preserve component instance layouts** — only change their container sizing (FILL width, HUG height), not their internal layoutMode
 - **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers, and all child frames in vertical layouts
 - **Swap component variants for responsive components** — Global Header, navigation, etc. have Size props
 - **Validate with screenshots** — visual confirmation catches issues text logs miss
