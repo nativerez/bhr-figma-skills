@@ -28,7 +28,12 @@ Use this skill to create or update full-page screens in Figma by **reusing the p
   - Or context about which file to target (the agent can discover pages)
 - Source code or description of the screen to build/update
 
-**BrightHR projects:** When working on BrightHR screens, load [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md) for mandatory design system sources, component filtering rules, default variant usage, and required components for new files.
+**BrightHR projects:** Load [brighthr-conventions.md](../figma-use/references/working-with-design-systems/brighthr-conventions.md) when ANY of these signals are present:
+- User explicitly mentions "BrightHR" in their request
+- Component discovery reveals libraries named "Components: Lumen (Bright-UI)" (fileKey: `3dNASwqNXrYbGQyHsf1Sgg`) or "Components: Icons v2.0" (fileKey: `2lYWKHwYwf4iAYJxILH2Wr`)
+- Figma file URL or workspace context contains "BrightHR"
+
+This file documents mandatory design system sources, component filtering rules, default variant usage, required components for new files, and the complete new file layout structure.
 
 ## Parallel Workflow with generate_figma_design (Web Apps Only)
 
