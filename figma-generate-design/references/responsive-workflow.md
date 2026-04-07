@@ -161,6 +161,10 @@ function convertHorizontalToVertical(node, isTablet = false) {
     node.primaryAxisSizingMode = "AUTO"; // Height hugs content (HUG)
     node.counterAxisSizingMode = "FIXED"; // Width stays fixed
     
+    // Set alignment to top-left for stacked children
+    node.primaryAxisAlignItems = "MIN"; // Top align
+    node.counterAxisAlignItems = "MIN"; // Left align
+    
     // Ensure proper spacing between stacked items
     if (node.itemSpacing === 0 || node.itemSpacing < 8) {
       node.itemSpacing = 16; // Minimum vertical spacing
@@ -171,6 +175,22 @@ function convertHorizontalToVertical(node, isTablet = false) {
       node.layoutSizingHorizontal = "FILL";
       node.layoutSizingVertical = "HUG"; // Never use FIXED height
     }
+  }
+  
+  // Handle text nodes to prevent 1px width issues
+  if (node.type === "TEXT") {
+    // Ensure text frames fill available width and hug height
+    if (node.parent && node.parent.layoutMode !== "NONE") {
+      node.layoutSizingHorizontal = "FILL";
+      node.layoutSizingVertical = "HUG";
+    }
+    
+    // Change center-aligned text to left-aligned for mobile
+    if (node.textAlignHorizontal === "CENTER") {
+      node.textAlignHorizontal = "LEFT";
+    }
+    
+    return; // Don't recurse into text nodes
   }
   
   // Recursively process all children
@@ -198,10 +218,12 @@ convertHorizontalToVertical(mobileFrame, false);
 **What this does:**
 1. **Finds all horizontal auto-layout frames** (skips component instances)
 2. **Converts them to vertical** (`layoutMode = "VERTICAL"`)
-3. **Sets proper sizing** (HUG height always, FILL width for nested frames)
-4. **Only sets sizing properties when parent has auto-layout** (prevents errors)
-5. **Adjusts spacing** (ensures minimum 16px gap between stacked items)
-6. **Preserves component instance layouts** (only makes them fill width)
+3. **Sets top-left alignment** for stacked children (`primaryAxisAlignItems = "MIN"`, `counterAxisAlignItems = "MIN"`)
+4. **Sets proper sizing** (HUG height always, FILL width for nested frames)
+5. **Only sets sizing properties when parent has auto-layout** (prevents errors)
+6. **Adjusts spacing** (ensures minimum 16px gap between stacked items)
+7. **Preserves component instance layouts** (only makes them fill width)
+8. **Fixes text frames** (FILL width, HUG height, changes CENTER → LEFT alignment)
 
 **Common patterns this handles:**
 - Card grids → vertical stack of full-width cards
@@ -389,7 +411,10 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 **Check for common issues:**
 - **Frames created on same page as desktop original** (not on a different page)
 - **All horizontal auto-layout frames converted to vertical** (check at all nesting levels, but skip component instances)
+- **Vertical frames have top-left alignment** (`primaryAxisAlignItems = "MIN"`, `counterAxisAlignItems = "MIN"`)
 - **Child frames in vertical layouts use FILL width and HUG height** (never FIXED height)
+- **Text frames fill width and hug height** (no 1px wide text, `layoutSizingHorizontal = "FILL"`, `layoutSizingVertical = "HUG"`)
+- **Center-aligned text changed to left-aligned** for mobile (`textAlignHorizontal = "LEFT"`)
 - **Component instances preserve their internal layout** (only their container sizing changes)
 - **No errors about layoutSizing on non-auto-layout parents** (check parent has auto-layout before setting sizing)
 - Buttons and select menus are full width (using `layoutSizingHorizontal = "FILL"`)
@@ -408,8 +433,11 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
 - **Convert horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform frames (not instances) at every nesting level, always check parent has auto-layout before setting sizing
+- **Set top-left alignment for vertical stacked content** — use `primaryAxisAlignItems = "MIN"` and `counterAxisAlignItems = "MIN"` when converting to vertical
 - **Always use HUG height, never FIXED** — heights should grow with content, not be constrained
 - **Preserve component instance layouts** — only change their container sizing (FILL width, HUG height), not their internal layoutMode
-- **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers, and all child frames in vertical layouts
+- **Fix text frames to prevent 1px width** — text nodes should use `layoutSizingHorizontal = "FILL"` and `layoutSizingVertical = "HUG"` when in auto-layout parents
+- **Change center-aligned text to left-aligned** — convert `textAlignHorizontal = "CENTER"` to `"LEFT"` for mobile readability
+- **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers, text frames, and all child frames in vertical layouts
 - **Swap component variants for responsive components** — Global Header, navigation, etc. have Size props
 - **Validate with screenshots** — visual confirmation catches issues text logs miss
