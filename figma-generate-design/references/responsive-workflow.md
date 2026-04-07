@@ -344,6 +344,120 @@ mobileContentSections.forEach(section => {
 });
 ```
 
+### 6.1. Mobile-Only: Consolidate Padding to Innermost Content Frames
+
+**MOBILE OPTIMIZATION:** Desktop designs often have padding at multiple nesting levels (parent frame → child frame → content). On mobile's limited width, this creates excessive horizontal whitespace. Remove redundant outer padding and keep it only on the innermost frame containing actual content.
+
+```js
+// Helper to check if a frame contains actual content (text, buttons, inputs, etc.)
+function hasActualContent(node) {
+  if (!node || !("children" in node)) return false;
+  
+  for (const child of node.children) {
+    // Direct content nodes
+    if (child.type === "TEXT") return true;
+    if (child.type === "INSTANCE" && (
+      child.name.includes("Button") || 
+      child.name.includes("Input") || 
+      child.name.includes("Select") ||
+      child.name.includes("Field")
+    )) return true;
+    
+    // Recurse into regular frames (not instances)
+    if (child.type === "FRAME" && hasActualContent(child)) return true;
+  }
+  
+  return false;
+}
+
+// Helper to find innermost content-containing frames
+function findInnermostContentFrames(node, results = []) {
+  if (node.type === "INSTANCE") return results; // Skip component instances
+  
+  if (node.type === "FRAME") {
+    // Check if this frame has direct content
+    const hasDirectContent = node.children.some(child => 
+      child.type === "TEXT" || 
+      (child.type === "INSTANCE" && (
+        child.name.includes("Button") || 
+        child.name.includes("Input") || 
+        child.name.includes("Select") ||
+        child.name.includes("Field")
+      ))
+    );
+    
+    if (hasDirectContent) {
+      // This is an innermost content frame
+      results.push(node);
+    } else {
+      // Recurse into children
+      for (const child of node.children) {
+        findInnermostContentFrames(child, results);
+      }
+    }
+  } else if ("children" in node) {
+    // Not a frame, but has children - recurse
+    for (const child of node.children) {
+      findInnermostContentFrames(child, results);
+    }
+  }
+  
+  return results;
+}
+
+// Helper to remove padding from all ancestor frames
+function removePaddingFromAncestors(contentFrame, rootFrame) {
+  let current = contentFrame.parent;
+  
+  while (current && current !== rootFrame && current.type !== "PAGE") {
+    // Only remove padding from regular frames, not instances
+    if (current.type === "FRAME") {
+      current.paddingLeft = 0;
+      current.paddingRight = 0;
+    }
+    current = current.parent;
+  }
+}
+
+// Apply to MOBILE ONLY (not tablet)
+const contentFrames = findInnermostContentFrames(mobileFrame);
+
+contentFrames.forEach(frame => {
+  // Ensure this frame has standard mobile padding
+  if (frame.type === "FRAME") {
+    frame.paddingLeft = 20;
+    frame.paddingRight = 20;
+    
+    // Remove padding from all ancestor frames
+    removePaddingFromAncestors(frame, mobileFrame);
+  }
+});
+```
+
+**What this does:**
+1. **Finds innermost frames** that directly contain content (text, buttons, inputs)
+2. **Ensures those frames have 20px horizontal padding** for proper spacing
+3. **Removes padding from all ancestor frames** to eliminate redundant whitespace
+4. **Skips component instances** entirely (preserves their internal spacing)
+5. **Mobile-only optimization** (doesn't affect tablet or desktop)
+
+**Example transformation:**
+```
+Before (Desktop):
+└─ Outer Frame (padding: 24px) 
+   └─ Middle Frame (padding: 16px)
+      └─ Content Frame (padding: 20px)
+         └─ Text / Buttons
+
+After (Mobile):
+└─ Outer Frame (padding: 0px) ✓ Removed
+   └─ Middle Frame (padding: 0px) ✓ Removed  
+      └─ Content Frame (padding: 20px) ✓ Kept
+         └─ Text / Buttons
+```
+
+This maximizes available width on mobile while maintaining proper spacing around content.
+
 ### 7. Stack Side-by-Side Content Vertically
 
 **CRITICAL:** Any content that appears side-by-side on desktop MUST stack vertically on tablet and mobile. This includes:
@@ -416,6 +530,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **All horizontal auto-layout frames converted to vertical** (check at all nesting levels, but skip component instances)
 - **Vertical frames have top-left alignment** (`primaryAxisAlignItems = "MIN"`, `counterAxisAlignItems = "MIN"`)
 - **Consistent spacing between stacked elements** (16px for previously auto/zero spacing, preserved for intentional gaps ≥ 8px)
+- **Mobile: Padding consolidated to innermost content frames** (no redundant padding on ancestor frames, only 20px on frames with actual content)
 - **Child frames in vertical layouts use FILL width and HUG height** (never FIXED height)
 - **Text frames fill width and hug height** (no 1px wide text, `layoutSizingHorizontal = "FILL"`, `layoutSizingVertical = "HUG"`)
 - **Center-aligned and right-aligned text changed to left-aligned** for mobile (`textAlignHorizontal = "LEFT"`)
@@ -436,6 +551,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Always clone first, then resize** — never try to resize in place and then clone
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
+- **Mobile-only: Consolidate padding to innermost frames** — remove redundant padding from ancestor frames; keep 20px only on frames that directly contain text/buttons/inputs
 - **Convert horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform frames (not instances) at every nesting level, always check parent has auto-layout before setting sizing
 - **Preserve intentional spacing, standardize small gaps** — spacing ≥ 8px is preserved for consistency; spacing < 8px (auto/packed layouts) becomes 16px for mobile
 - **Set top-left alignment for vertical stacked content** — use `primaryAxisAlignItems = "MIN"` and `counterAxisAlignItems = "MIN"` when converting to vertical
