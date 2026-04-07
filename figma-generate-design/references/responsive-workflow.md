@@ -124,7 +124,78 @@ if (sideNav) {
 }
 ```
 
-### 4. Make Buttons and Select Menus Full Width
+### 4. Convert All Horizontal Auto-Layout Frames to Vertical (CRITICAL)
+
+**This is a universal transformation rule for responsive design.** On tablet and mobile, horizontal layouts that work on desktop become problematic due to limited width. ALL auto-layout frames set to HORIZONTAL must be converted to VERTICAL, at every nesting level.
+
+**This applies to:**
+- All parent auto-layout frames
+- All nested auto-layout frames (recursively)
+- Content containers, card grids, button groups, form rows, navigation bars
+- Any frame with `layoutMode === "HORIZONTAL"`
+
+**Why this matters:**
+- Horizontal layouts on desktop (e.g., 3 cards in a row) don't fit on mobile
+- Limited width forces content to stack vertically
+- Child elements need to fill available width instead of sitting side-by-side
+
+```js
+// Recursive function to convert all horizontal auto-layout frames to vertical
+function convertHorizontalToVertical(node, isTablet = false) {
+  const targetWidth = isTablet ? 768 : 375;
+  
+  // If this node is a horizontal auto-layout frame, convert it to vertical
+  if (node.type === "FRAME" && node.layoutMode === "HORIZONTAL") {
+    node.layoutMode = "VERTICAL";
+    node.primaryAxisSizingMode = "AUTO"; // Height grows with content
+    node.counterAxisSizingMode = "FIXED"; // Width is fixed or fill
+    
+    // Ensure proper spacing between stacked items
+    if (node.itemSpacing === 0 || node.itemSpacing < 8) {
+      node.itemSpacing = 16; // Minimum vertical spacing
+    }
+    
+    // Make container fill available width if it's not top-level
+    if (node.parent && node.parent.type !== "PAGE") {
+      node.layoutSizingHorizontal = "FILL";
+    }
+  }
+  
+  // Recursively process all children
+  if ("children" in node) {
+    for (const child of node.children) {
+      convertHorizontalToVertical(child, isTablet);
+      
+      // After converting parent to vertical, make children fill width
+      if (node.layoutMode === "VERTICAL" && child.type === "FRAME") {
+        child.layoutSizingHorizontal = "FILL";
+      }
+    }
+  }
+}
+
+// Apply to tablet frame
+convertHorizontalToVertical(tabletFrame, true);
+
+// Apply to mobile frame
+convertHorizontalToVertical(mobileFrame, false);
+```
+
+**What this does:**
+1. **Finds all horizontal auto-layout frames** at every nesting level
+2. **Converts them to vertical** (`layoutMode = "VERTICAL"`)
+3. **Sets proper sizing** (HUG height, FILL width for nested frames)
+4. **Adjusts spacing** (ensures minimum 16px gap between stacked items)
+5. **Makes children fill width** (so content uses full available space instead of shrinking)
+
+**Common patterns this handles:**
+- Card grids → vertical stack of full-width cards
+- Button groupsside-by-side (desktop) → stacked buttons (mobile)
+- Form rows with multiple inputs → vertical stack of full-width inputs
+- Navigation pills in a row → vertical list of nav items
+- Image + text layouts (horizontal) → image above text (vertical)
+
+### 5. Make Buttons and Select Menus Full Width
 
 **Critical for mobile UX:** Buttons and select menus should stretch to fill the available width using auto-layout sizing. This improves touch targets and follows mobile design patterns.
 
@@ -186,7 +257,7 @@ mobileSelects.forEach(select => {
 });
 ```
 
-### 5. Adjust Content Containers and Stack Vertically
+### 6. Adjust Content Containers and Stack Vertically
 
 **Use auto-layout to make content containers flush to frame edges with proper padding.** This ensures consistent spacing and responsive behavior:
 
@@ -231,7 +302,7 @@ mobileContentSections.forEach(section => {
 });
 ```
 
-### 6. Stack Side-by-Side Content Vertically
+### 7. Stack Side-by-Side Content Vertically
 
 **CRITICAL:** Any content that appears side-by-side on desktop MUST stack vertically on tablet and mobile. This includes:
 - **Multiple cards** (e.g., 2 or 3 cards in a row → stack vertically)
@@ -288,7 +359,7 @@ horizontalLayouts.forEach(layout => {
 });
 ```
 
-### 7. Validate Each Responsive Version
+### 8. Validate Each Responsive Version
 
 After creating each responsive version, validate with screenshots:
 
@@ -300,6 +371,8 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 
 **Check for common issues:**
 - **Frames created on same page as desktop original** (not on a different page)
+- **All horizontal auto-layout frames converted to vertical** (check at all nesting levels)
+- **Child frames in vertical layouts use FILL width** (not FIXED or HUG)
 - Buttons and select menus are full width (using `layoutSizingHorizontal = "FILL"`)
 - Content containers have proper padding (20px left/right on inner containers, not the main frame)
 - Side-by-side content is stacked vertically
@@ -315,7 +388,7 @@ const mobileScreenshot = await get_screenshot(fileKey, mobileFrameId);
 - **Always clone first, then resize** — never try to resize in place and then clone
 - **Enable auto-layout on cloned frames immediately** after resizing to ensure content flows
 - **Apply padding to inner containers, not the main frame** — main frames should be flush to edges
-- **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers
-- **Convert all horizontal layouts to vertical** — side-by-side content must stack on mobile
+- **Convert ALL horizontal auto-layout frames to vertical (CRITICAL)** — recursively transform every horizontal frame at every nesting level, then set child frames to FILL width
+- **Use `layoutSizingHorizontal = "FILL"` for full-width elements** — buttons, selects, content containers, and all child frames in vertical layouts
 - **Swap component variants for responsive components** — Global Header, navigation, etc. have Size props
 - **Validate with screenshots** — visual confirmation catches issues text logs miss

@@ -51,7 +51,7 @@ This combines the best of both: `generate_figma_design` gives pixel-perfect layo
 
 ## Creating Responsive Versions from Desktop Frames
 
-When the user requests **tablet and mobile versions** of an existing desktop frame, load [responsive-workflow.md](references/responsive-workflow.md) for the complete workflow, including viewport sizes, padding rules, component variant swapping, and the 7-step adaptation process.
+When the user requests **tablet and mobile versions** of an existing desktop frame, load [responsive-workflow.md](references/responsive-workflow.md) for the complete workflow, including viewport sizes, padding rules, component variant swapping, and the 8-step adaptation process.
 
 ## Required Workflow
 
