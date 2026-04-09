@@ -1,5 +1,7 @@
 # BrightHR Design System Conventions
 
+> **Also load:** [brighthr-lumen-components.md](brighthr-lumen-components.md) — the complete Lumen component reference with every component key, props, and color token catalogue. That file is the primary lookup for "what key do I use to import X component?" questions.
+
 When working with BrightHR Figma files, prioritize metadata that enables AI-assisted workflows. The following conventions ensure that MCP tools can correctly interpret and use the design system.
 
 ---

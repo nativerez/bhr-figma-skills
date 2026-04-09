@@ -16,12 +16,16 @@ Before anything, load [plugin-api-standalone.index.md](references/plugin-api-sta
 
 IMPORTANT: Whenever you work with design systems, start with [working-with-design-systems/wwds.md](references/working-with-design-systems/wwds.md) to understand the key concepts, processes, and guidelines for working with design systems in Figma. Then load the more specific references for components, variables, text styles, and effect styles as needed.
 
-**BrightHR projects:** Load [brighthr-conventions.md](references/working-with-design-systems/brighthr-conventions.md) when ANY of these signals are present:
+**BrightHR projects:** Load BOTH of these files when ANY of the signals below are present:
+1. [brighthr-conventions.md](references/working-with-design-systems/brighthr-conventions.md) — mandatory metadata rules, layout structure, design system sources
+2. [brighthr-lumen-components.md](references/working-with-design-systems/brighthr-lumen-components.md) — **complete Lumen component reference** with every component's `importComponentSetByKeyAsync` key, all variant/property definitions, and color token catalogue
+
+**Signals to load BrightHR docs:**
 - User explicitly mentions "BrightHR" in their request
 - Component discovery (via `search_design_system` or inspecting existing screens) reveals libraries named "Components: Lumen (Bright-UI)" (fileKey: `3dNASwqNXrYbGQyHsf1Sgg`) or "Components: Icons v2.0" (fileKey: `2lYWKHwYwf4iAYJxILH2Wr`)
 - Figma file URL or workspace context contains "BrightHR"
 
-This file documents mandatory metadata requirements (component descriptions, variable scopes, code syntax annotations) and design system sources that enable AI-assisted workflows.
+`brighthr-lumen-components.md` is the **primary lookup** for component keys and props — consult it before calling `search_design_system` to avoid redundant searches.
 
 ## 1. Critical Rules
 
